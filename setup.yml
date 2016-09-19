@@ -1,0 +1,47 @@
+- hosts: localhost
+  tasks:
+  - name: install Git
+    yum: name=git state=latest
+    become: yes
+    become_method: sudo
+  - name: clone ourrepo
+    git: repo=https://github.com/eemanuel-cisco/ourrepo.git dest=~/ourrepo update=no
+  - name: clone petclinic
+    git: repo=https://github.com/eemanuel-cisco/spring-petclinic.git dest=~/petclinic
+  - name: download and unzip maven
+    unarchive: src=http://apache.mivzakim.net/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.zip dest=~ copy=no creates=~/apache-maven-3.3.9
+  - name: define M2_HOME
+    lineinfile: dest=~/.bash_profile line="export M2_HOME=~/apache-maven-3.3.9" regexp="^export M2_HOME.*" insertbefore="^PATH.*"
+  - name: define M2
+    lineinfile: dest=~/.bash_profile line="export M2=${M2_HOME}/bin" regexp="^export M2=.*" insertafter="^export M2_HOME.*"
+  - name: add Maven to PATH
+    lineinfile: dest=~/.bash_profile line="PATH=$M2:$PATH" regexp="^PATH=$M2:$PAT.*" insertbefore="^export PATH.*"
+  - name: install docker
+    yum: name=docker state=latest
+    become: yes
+    become_method: sudo
+  - name: add docker group to ec2-user
+    user: append=yes groups=docker name=ec2-user
+    become: yes
+    become_method: sudo
+  - name: start docker service
+    service: name=docker state=started
+    become: yes
+    become_method: sudo
+  - name: Ensure Jenkins Yum repo present
+    become: yes
+    become_method: sudo
+    get_url: url=http://pkg.jenkins-ci.org/redhat/jenkins.repo
+           dest=/etc/yum.repos.d/jenkins.repo mode=0644
+  - name: Ensure Jenkins GPG key installed
+    command: rpm --import http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key
+    become: yes
+    become_method: sudo
+  - name: Ensure Jenkins installed
+    yum: name=jenkins state=present
+    become: yes
+    become_method: sudo
+  - name: Ensure Jenkins is running
+    service: name=jenkins state=running enabled=true
+    become: yes
+    become_method: sudo
